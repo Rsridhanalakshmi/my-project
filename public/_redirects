@@ -1,0 +1,2 @@
+/api/* https://gconnect-dev.gdinexus.com:8409/api/:splat 200
+/* /index.html 200
