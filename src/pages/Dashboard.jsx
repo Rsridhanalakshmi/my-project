@@ -299,18 +299,69 @@ function Dashboard() {
     }
   }, []);
 
+  const fetchMyProfile = useCallback(async () => {
+    setMyProfileLoading(true);
+    setMyProfileError(null);
+    const token = localStorage.getItem("token");
+    if (!token) {
+      navigate("/");
+      return;
+    }
+
+    try {
+      const decoded = decodeToken(token);
+      const userId =
+        decoded?.userId ||
+        decoded?.id ||
+        decoded?.["http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier"];
+
+      if (!userId) {
+        throw new Error("Could not find user ID in token");
+      }
+
+      const response = await axios.get(`/api/auth/get-employee-byId/${userId}`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      const data = response.data;
+      setMyProfileData(data);
+
+      setMyProfileEditForm({
+        firstName: data.firstName || "",
+        lastName: data.lastName || "",
+        email: data.email || "",
+        phoneNumber: data.phoneNumber || "",
+        mobileNumber: data.mobileNumber || "",
+        dob: data.dob ? data.dob.substring(0, 10) : "",
+        genderId: data.genderId || "",
+        reportsToId: data.reportsToId || "",
+        title: data.title || "",
+        degree: data.degree || "",
+        pictureUrl: data.pictureUrl || "",
+      });
+    } catch (err) {
+      console.error("Error fetching my profile:", err);
+      setMyProfileError(err.response?.data?.message || "Failed to load profile details.");
+    } finally {
+      setMyProfileLoading(false);
+    }
+  }, [navigate]);
+
   useEffect(() => {
     const token = localStorage.getItem("token");
     if (!token) {
       navigate("/");
     } else {
       Promise.resolve().then(() => {
+        fetchMyProfile();
         fetchEmployees();
         fetchReferences();
         
       });
     }
-  }, [navigate, fetchEmployees, fetchReferences ]);
+  }, [navigate, fetchMyProfile, fetchEmployees, fetchReferences ]);
 
   const handleLogout = () => {
     localStorage.removeItem("token");
