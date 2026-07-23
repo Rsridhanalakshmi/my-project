@@ -5,6 +5,7 @@ import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import Breadcrumb from "../components/Breadcrumb";
 import Header from "../components/Header";
+import DashboardCharts from "../components/DashboardCharts";
 import {
   FaSearch,
   FaSignOutAlt,
@@ -46,6 +47,8 @@ function Dashboard() {
   const navigate = useNavigate();
   const [employees, setEmployees] = useState([]);
   const [references, setReferences] = useState([]);
+  const [holidays, setHolidays] = useState([]);
+  const [leaveRequests, setLeaveRequests] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -299,6 +302,34 @@ function Dashboard() {
     }
   }, []);
 
+  const fetchHolidays = useCallback(async () => {
+    const token = localStorage.getItem("token");
+    if (!token) return;
+
+    try {
+      const response = await axios.get("/api/auth/holiday-calendar?year=2026", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setHolidays(response.data);
+    } catch (err) {
+      console.error("Error fetching holidays:", err);
+    }
+  }, []);
+
+  const fetchLeaveRequests = useCallback(async () => {
+    const token = localStorage.getItem("token");
+    if (!token) return;
+
+    try {
+      const response = await axios.get("/api/auth/get-all-leave-requests", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setLeaveRequests(response.data);
+    } catch (err) {
+      console.error("Error fetching leave requests:", err);
+    }
+  }, []);
+
   const fetchMyProfile = useCallback(async () => {
     setMyProfileLoading(true);
     setMyProfileError(null);
@@ -358,10 +389,12 @@ function Dashboard() {
         fetchMyProfile();
         fetchEmployees();
         fetchReferences();
+        fetchHolidays();
+        fetchLeaveRequests();
         
       });
     }
-  }, [navigate, fetchMyProfile, fetchEmployees, fetchReferences ]);
+  }, [navigate, fetchMyProfile, fetchEmployees, fetchReferences, fetchHolidays, fetchLeaveRequests]);
 
   const handleLogout = () => {
     localStorage.removeItem("token");
@@ -455,6 +488,9 @@ function Dashboard() {
   const totalEmployees = employees.length;
   const totalManagers = [...new Set(employees.map((e) => e.managerName).filter(Boolean))].length;
   const totalRoles = getUniqueTitles().length;
+  const totalInterns = employees.filter(e => e.title && e.title.toLowerCase().includes("intern")).length;
+  const totalHolidays = holidays.length;
+  const pendingLeaves = leaveRequests.filter(lr => lr.status === "PENDING" || lr.statusCode === "PENDING").length;
 
   const renderSortIcon = (field) => {
     if (sortField !== field) return <FaSort className="ml-1.5 inline text-slate-500 hover:text-slate-300 transition-colors" />;
@@ -541,7 +577,43 @@ function Dashboard() {
               <FaBriefcase className="text-xl" />
             </div>
           </div>
+
+          <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xl flex items-center justify-between relative overflow-hidden group hover:border-pink-300 dark:hover:border-pink-900/50 transition-all duration-300">
+            <div className="absolute -right-6 -bottom-6 w-24 h-24 bg-pink-500/5 rounded-full blur-2xl group-hover:bg-pink-500/10 transition duration-300"></div>
+            <div>
+              <p className="text-slate-500 dark:text-slate-400 text-sm font-medium uppercase tracking-wider transition-colors">Total Interns</p>
+              <h3 className="text-4xl font-extrabold text-slate-900 dark:text-white mt-1 transition-colors">{loading ? "..." : totalInterns}</h3>
+            </div>
+            <div className="w-12 h-12 rounded-xl bg-pink-50 dark:bg-pink-950/60 border border-pink-100 dark:border-pink-900/50 flex items-center justify-center text-pink-600 dark:text-pink-400 shadow-inner transition-colors">
+              <FaGraduationCap className="text-xl" />
+            </div>
+          </div>
+
+          <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xl flex items-center justify-between relative overflow-hidden group hover:border-amber-300 dark:hover:border-amber-900/50 transition-all duration-300">
+            <div className="absolute -right-6 -bottom-6 w-24 h-24 bg-amber-500/5 rounded-full blur-2xl group-hover:bg-amber-500/10 transition duration-300"></div>
+            <div>
+              <p className="text-slate-500 dark:text-slate-400 text-sm font-medium uppercase tracking-wider transition-colors">Govt Holidays</p>
+              <h3 className="text-4xl font-extrabold text-slate-900 dark:text-white mt-1 transition-colors">{holidays.length === 0 ? "..." : totalHolidays}</h3>
+            </div>
+            <div className="w-12 h-12 rounded-xl bg-amber-50 dark:bg-amber-950/60 border border-amber-100 dark:border-amber-900/50 flex items-center justify-center text-amber-600 dark:text-amber-400 shadow-inner transition-colors">
+              <FaCalendarAlt className="text-xl" />
+            </div>
+          </div>
+
+          <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xl flex items-center justify-between relative overflow-hidden group hover:border-rose-300 dark:hover:border-rose-900/50 transition-all duration-300">
+            <div className="absolute -right-6 -bottom-6 w-24 h-24 bg-rose-500/5 rounded-full blur-2xl group-hover:bg-rose-500/10 transition duration-300"></div>
+            <div>
+              <p className="text-slate-500 dark:text-slate-400 text-sm font-medium uppercase tracking-wider transition-colors">Pending Leaves</p>
+              <h3 className="text-4xl font-extrabold text-slate-900 dark:text-white mt-1 transition-colors">{leaveRequests.length === 0 ? "..." : pendingLeaves}</h3>
+            </div>
+            <div className="w-12 h-12 rounded-xl bg-rose-50 dark:bg-rose-950/60 border border-rose-100 dark:border-rose-900/50 flex items-center justify-center text-rose-600 dark:text-rose-400 shadow-inner transition-colors">
+              <FaEnvelope className="text-xl" />
+            </div>
+          </div>
         </section>
+
+        {/* Dashboard Charts */}
+        <DashboardCharts employees={employees} getGenderName={getGenderName} leaveRequests={leaveRequests} holidays={holidays} />
 
         <section className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-2xl overflow-hidden transition-colors duration-300">
           {/* Table Header Filter & Search Bar */}
