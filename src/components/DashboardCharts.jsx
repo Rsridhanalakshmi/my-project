@@ -128,20 +128,20 @@ export default function DashboardCharts({ employees, getGenderName, leaveRequest
     <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6 mb-8 transition-all duration-300">
       
       {/* 1. Manager Distribution with Toggle */}
-      <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xl group hover:border-emerald-300 dark:hover:border-emerald-900/50 transition-all duration-300 flex flex-col h-80">
+      <div className="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xl group hover:border-emerald-300 dark:hover:border-emerald-900/50 transition-all duration-300 flex flex-col h-64">
         <div className="flex justify-between items-center mb-2">
-          <h3 className="text-lg font-bold text-slate-900 dark:text-white">Manager Spread</h3>
-          <button onClick={() => setManagerChartType(managerChartType === "bar" ? "pie" : "bar")} className="text-xs px-2 py-1 bg-slate-100 dark:bg-slate-800 rounded hover:bg-slate-200 dark:hover:bg-slate-700 transition">
+          <h3 className="text-base font-bold text-slate-900 dark:text-white">Manager Spread</h3>
+          <button onClick={() => setManagerChartType(managerChartType === "bar" ? "pie" : "bar")} className="text-[10px] px-2 py-1 bg-slate-100 dark:bg-slate-800 rounded hover:bg-slate-200 dark:hover:bg-slate-700 transition">
             Toggle
           </button>
         </div>
-        <div className="flex-1 min-h-[200px]">
+        <div className="flex-1 min-h-[160px]">
           <ResponsiveContainer width="100%" height="100%">
             {managerChartType === "bar" ? (
               <BarChart data={managerData} margin={{ top: 10, right: 10, left: -25, bottom: 20 }}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#334155" opacity={0.2} />
-                <XAxis dataKey="name" tick={{ fontSize: 10 }} tickLine={false} axisLine={false} angle={-35} textAnchor="end" height={50} />
-                <YAxis tick={{ fontSize: 10 }} tickLine={false} axisLine={false} allowDecimals={false} />
+                <XAxis dataKey="name" tick={{ fontSize: 9 }} tickLine={false} axisLine={false} angle={-35} textAnchor="end" height={40} />
+                <YAxis tick={{ fontSize: 9 }} tickLine={false} axisLine={false} allowDecimals={false} />
                 <RechartsTooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(148, 163, 184, 0.1)' }} />
                 <Bar dataKey="value" fill="#10b981" radius={[4, 4, 0, 0]}>
                   {managerData.map((entry, index) => (
@@ -151,7 +151,7 @@ export default function DashboardCharts({ employees, getGenderName, leaveRequest
               </BarChart>
             ) : (
               <PieChart>
-                <Pie data={managerData} cx="50%" cy="50%" outerRadius={80} dataKey="value" stroke="none">
+                <Pie data={managerData} cx="50%" cy="50%" outerRadius={60} dataKey="value" stroke="none">
                   {managerData.map((entry, index) => (
                     <Cell key={`cell-${index}`} fill={COLORS[(index + 1) % COLORS.length]} />
                   ))}
@@ -164,28 +164,28 @@ export default function DashboardCharts({ employees, getGenderName, leaveRequest
       </div>
 
       {/* 2. Roles Distribution with Toggle */}
-      <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xl group hover:border-violet-300 dark:hover:border-violet-900/50 transition-all duration-300 flex flex-col h-80">
+      <div className="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xl group hover:border-violet-300 dark:hover:border-violet-900/50 transition-all duration-300 flex flex-col h-64">
         <div className="flex justify-between items-center mb-2">
-          <h3 className="text-lg font-bold text-slate-900 dark:text-white">Roles Distribution</h3>
-          <button onClick={() => setRoleChartType(roleChartType === "line" ? "bar" : "line")} className="text-xs px-2 py-1 bg-slate-100 dark:bg-slate-800 rounded hover:bg-slate-200 dark:hover:bg-slate-700 transition">
+          <h3 className="text-base font-bold text-slate-900 dark:text-white">Roles Distribution</h3>
+          <button onClick={() => setRoleChartType(roleChartType === "line" ? "bar" : "line")} className="text-[10px] px-2 py-1 bg-slate-100 dark:bg-slate-800 rounded hover:bg-slate-200 dark:hover:bg-slate-700 transition">
             Toggle
           </button>
         </div>
-        <div className="flex-1 min-h-[200px]">
+        <div className="flex-1 min-h-[160px]">
           <ResponsiveContainer width="100%" height="100%">
             {roleChartType === "line" ? (
               <LineChart data={roleData} margin={{ top: 10, right: 10, left: -25, bottom: 20 }}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#334155" opacity={0.2} />
-                <XAxis dataKey="name" tick={{ fontSize: 10 }} tickLine={false} axisLine={false} angle={-35} textAnchor="end" height={50} />
-                <YAxis tick={{ fontSize: 10 }} tickLine={false} axisLine={false} allowDecimals={false} />
+                <XAxis dataKey="name" tick={{ fontSize: 9 }} tickLine={false} axisLine={false} angle={-35} textAnchor="end" height={40} />
+                <YAxis tick={{ fontSize: 9 }} tickLine={false} axisLine={false} allowDecimals={false} />
                 <RechartsTooltip content={<CustomTooltip />} />
-                <Line type="monotone" dataKey="value" stroke="#8b5cf6" strokeWidth={3} dot={{ r: 4, strokeWidth: 2 }} activeDot={{ r: 6 }} />
+                <Line type="monotone" dataKey="value" stroke="#8b5cf6" strokeWidth={3} dot={{ r: 3, strokeWidth: 2 }} activeDot={{ r: 5 }} />
               </LineChart>
             ) : (
               <BarChart data={roleData} margin={{ top: 10, right: 10, left: -25, bottom: 20 }}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#334155" opacity={0.2} />
-                <XAxis dataKey="name" tick={{ fontSize: 10 }} tickLine={false} axisLine={false} angle={-35} textAnchor="end" height={50} />
-                <YAxis tick={{ fontSize: 10 }} tickLine={false} axisLine={false} allowDecimals={false} />
+                <XAxis dataKey="name" tick={{ fontSize: 9 }} tickLine={false} axisLine={false} angle={-35} textAnchor="end" height={40} />
+                <YAxis tick={{ fontSize: 9 }} tickLine={false} axisLine={false} allowDecimals={false} />
                 <RechartsTooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(148, 163, 184, 0.1)' }} />
                 <Bar dataKey="value" fill="#8b5cf6" radius={[4, 4, 0, 0]} />
               </BarChart>
@@ -196,18 +196,18 @@ export default function DashboardCharts({ employees, getGenderName, leaveRequest
 
       {/* 3. Leaves by Type */}
       {leavesData.length > 0 && (
-        <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xl group hover:border-orange-300 dark:hover:border-orange-900/50 transition-all duration-300 flex flex-col h-80 xl:col-span-1">
-          <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-2">Leave Types</h3>
-          <div className="flex-1 min-h-[200px]">
+        <div className="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xl group hover:border-orange-300 dark:hover:border-orange-900/50 transition-all duration-300 flex flex-col h-64 xl:col-span-1">
+          <h3 className="text-base font-bold text-slate-900 dark:text-white mb-2">Leave Types</h3>
+          <div className="flex-1 min-h-[160px]">
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
-                <Pie data={leavesData} cx="50%" cy="50%" innerRadius={40} outerRadius={70} paddingAngle={5} dataKey="value" stroke="none">
+                <Pie data={leavesData} cx="50%" cy="50%" innerRadius={35} outerRadius={55} paddingAngle={5} dataKey="value" stroke="none">
                   {leavesData.map((entry, index) => (
                     <Cell key={`cell-${index}`} fill={COLORS[(index + 4) % COLORS.length]} />
                   ))}
                 </Pie>
                 <RechartsTooltip content={<CustomTooltip />} />
-                <Legend wrapperStyle={{ fontSize: '12px' }} />
+                <Legend wrapperStyle={{ fontSize: '10px' }} />
               </PieChart>
             </ResponsiveContainer>
           </div>
@@ -215,14 +215,14 @@ export default function DashboardCharts({ employees, getGenderName, leaveRequest
       )}
 
       {/* 4. Age Demographics */}
-      <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xl group hover:border-rose-300 dark:hover:border-rose-900/50 transition-all duration-300 flex flex-col h-80">
-        <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-2">Age Demographics</h3>
-        <div className="flex-1 min-h-[200px]">
+      <div className="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xl group hover:border-rose-300 dark:hover:border-rose-900/50 transition-all duration-300 flex flex-col h-64">
+        <h3 className="text-base font-bold text-slate-900 dark:text-white mb-2">Age Demographics</h3>
+        <div className="flex-1 min-h-[160px]">
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={ageData} margin={{ top: 10, right: 10, left: -25, bottom: 20 }}>
               <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#334155" opacity={0.2} />
-              <XAxis dataKey="name" tick={{ fontSize: 10 }} tickLine={false} axisLine={false} angle={-35} textAnchor="end" height={50} />
-              <YAxis tick={{ fontSize: 10 }} tickLine={false} axisLine={false} allowDecimals={false} />
+              <XAxis dataKey="name" tick={{ fontSize: 9 }} tickLine={false} axisLine={false} angle={-35} textAnchor="end" height={40} />
+              <YAxis tick={{ fontSize: 9 }} tickLine={false} axisLine={false} allowDecimals={false} />
               <RechartsTooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(148, 163, 184, 0.1)' }} />
               <Bar dataKey="value" fill="#f43f5e" radius={[4, 4, 0, 0]}>
                 {ageData.map((entry, index) => (
@@ -235,18 +235,18 @@ export default function DashboardCharts({ employees, getGenderName, leaveRequest
       </div>
 
       {/* 5. Gender Distribution */}
-      <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xl group hover:border-blue-300 dark:hover:border-blue-900/50 transition-all duration-300 flex flex-col h-80">
-        <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-2">Gender Distribution</h3>
-        <div className="flex-1 min-h-[200px]">
+      <div className="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xl group hover:border-blue-300 dark:hover:border-blue-900/50 transition-all duration-300 flex flex-col h-64">
+        <h3 className="text-base font-bold text-slate-900 dark:text-white mb-2">Gender Distribution</h3>
+        <div className="flex-1 min-h-[160px]">
           <ResponsiveContainer width="100%" height="100%">
             <PieChart>
-              <Pie data={genderData} cx="50%" cy="50%" innerRadius={50} outerRadius={80} paddingAngle={5} dataKey="value" stroke="none">
+              <Pie data={genderData} cx="50%" cy="50%" innerRadius={40} outerRadius={60} paddingAngle={5} dataKey="value" stroke="none">
                 {genderData.map((entry, index) => (
                   <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                 ))}
               </Pie>
               <RechartsTooltip content={<CustomTooltip />} />
-              <Legend wrapperStyle={{ fontSize: '12px' }} />
+              <Legend wrapperStyle={{ fontSize: '10px' }} />
             </PieChart>
           </ResponsiveContainer>
         </div>
