@@ -5,7 +5,7 @@ import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import Breadcrumb from "../components/Breadcrumb";
 import Header from "../components/Header";
-import DashboardCharts from "../components/DashboardCharts";
+
 import {
   FaSearch,
   FaSignOutAlt,
@@ -43,7 +43,7 @@ const decodeToken = (token) => {
   }
 };
 
-function Dashboard() {
+function EmployeeDirectory() {
   const navigate = useNavigate();
   const [employees, setEmployees] = useState([]);
   const [references, setReferences] = useState([]);
@@ -245,6 +245,14 @@ function Dashboard() {
     }
   };
 
+  // Search & Filter states
+  const [searchTerm, setSearchTerm] = useState("");
+  const [titleFilter, setTitleFilter] = useState("");
+  const [sortField, setSortField] = useState("employeeId");
+  const [sortOrder, setSortOrder] = useState("asc");
+
+  // Selected employee for the side drawer
+  const [selectedEmployee, setSelectedEmployee] = useState(null);
 
   // Fetch all employees from the API
   const fetchEmployees = useCallback(async () => {
@@ -418,8 +426,7 @@ function Dashboard() {
     return fullName || manager.userName || reportsToId;
   };
 
-
-  // Extract unique roles / titles for KPI
+  // Extract unique roles / titles for filtering
   const getUniqueTitles = () => {
     const titles = employees
       .map((emp) => emp.title)
@@ -427,15 +434,75 @@ function Dashboard() {
     return [...new Set(titles)];
   };
 
-  // KPI Statistics calculations
-  const totalEmployees = employees.length;
-  const totalManagers = [...new Set(employees.map((e) => e.managerName).filter(Boolean))].length;
-  const totalRoles = getUniqueTitles().length;
-  const totalInterns = employees.filter(e => e.title && e.title.toLowerCase().includes("intern")).length;
-  const totalHolidays = holidays.length;
-  const pendingLeaves = leaveRequests.filter(lr => lr.status === "PENDING" || lr.statusCode === "PENDING").length;
+  // Trigger sorting
+  const handleSort = (field) => {
+    if (sortField === field) {
+      setSortOrder(sortOrder === "asc" ? "desc" : "asc");
+    } else {
+      setSortField(field);
+      setSortOrder("asc");
+    }
+  };
+
+  // Filter and sort employees logic
+  const filteredEmployees = employees
+    .filter((emp) => {
+      const fullName = `${emp.firstName || ""} ${emp.lastName || ""}`.toLowerCase();
+      const userName = (emp.userName || "").toLowerCase();
+      const email = (emp.email || "").toLowerCase();
+      const employeeId = (emp.employeeId || "").toLowerCase();
+      const title = (emp.title || "").toLowerCase();
+      const managerName = (emp.managerName || "").toLowerCase();
+      const term = searchTerm.toLowerCase();
+
+      const matchesSearch =
+        fullName.includes(term) ||
+        userName.includes(term) ||
+        email.includes(term) ||
+        employeeId.includes(term) ||
+        title.includes(term) ||
+        managerName.includes(term);
+
+      const matchesTitle = titleFilter === "" || emp.title === titleFilter;
+
+      return matchesSearch && matchesTitle;
+    })
+    .sort((a, b) => {
+      let valA;
+      let valB;
+
+      if (sortField === "name") {
+        valA = `${a.firstName || ""} ${a.lastName || ""}`.toLowerCase();
+        valB = `${b.firstName || ""} ${b.lastName || ""}`.toLowerCase();
+      } else {
+        valA = (a[sortField] || "").toLowerCase();
+        valB = (b[sortField] || "").toLowerCase();
+      }
+
+      if (valA < valB) return sortOrder === "asc" ? -1 : 1;
+      if (valA > valB) return sortOrder === "asc" ? 1 : -1;
+      return 0;
+    });
 
 
+
+  const renderSortIcon = (field) => {
+    if (sortField !== field) return <FaSort className="ml-1.5 inline text-slate-500 hover:text-slate-300 transition-colors" />;
+    return sortOrder === "asc" ? (
+      <FaSortUp className="ml-1.5 inline text-blue-400" />
+    ) : (
+      <FaSortDown className="ml-1.5 inline text-blue-400" />
+    );
+  };
+
+  const getTitleBadgeStyles = (title) => {
+    if (!title) return "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700/50";
+    const lower = title.toLowerCase();
+    if (lower.includes("manager")) return "bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/40";
+    if (lower.includes("developer")) return "bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-400 border border-blue-200 dark:border-blue-800/40";
+    if (lower.includes("hr")) return "bg-rose-50 dark:bg-rose-950/60 text-rose-700 dark:text-rose-400 border border-rose-200 dark:border-rose-800/40";
+    return "bg-violet-50 dark:bg-violet-950/60 text-violet-700 dark:text-violet-400 border border-violet-200 dark:border-violet-800/40";
+  };
 
   const formatFullName = (emp) => {
     const full = `${emp.firstName || ""} ${emp.lastName || ""}`.trim();
@@ -469,83 +536,383 @@ function Dashboard() {
       <main className="max-w-7xl mx-auto px-4 sm:px-6 mt-8">
         <Breadcrumb />
 
-        {/* KPI Dashboard Stats Cards */}
-        <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-          <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xl flex items-center justify-between relative overflow-hidden group hover:border-blue-300 dark:hover:border-blue-900/50 transition-all duration-300">
-            <div className="absolute -right-6 -bottom-6 w-24 h-24 bg-blue-500/5 rounded-full blur-2xl group-hover:bg-blue-500/10 transition duration-300"></div>
+
+
+        <section className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-2xl overflow-hidden transition-colors duration-300">
+          {/* Table Header Filter & Search Bar */}
+          <div className="p-6 border-b border-slate-200 dark:border-slate-800 flex flex-col md:flex-row md:items-center justify-between gap-4 bg-slate-50/50 dark:bg-slate-900/50 transition-colors">
             <div>
-              <p className="text-slate-500 dark:text-slate-400 text-sm font-medium uppercase tracking-wider transition-colors">Total Employees</p>
-              <h3 className="text-4xl font-extrabold text-slate-900 dark:text-white mt-1 transition-colors">{loading ? "..." : totalEmployees}</h3>
+              <h2 className="text-lg font-bold text-slate-900 dark:text-white transition-colors">Employee Directory</h2>
+              <p className="text-sm text-slate-500 dark:text-slate-400 transition-colors">Search, filter, and view detailed credentials of your staff.</p>
             </div>
-            <div className="w-12 h-12 rounded-xl bg-blue-50 dark:bg-blue-950/60 border border-blue-100 dark:border-blue-900/50 flex items-center justify-center text-blue-600 dark:text-blue-400 shadow-inner transition-colors">
-              <FaUsers className="text-xl" />
+
+            <div className="flex flex-wrap items-center gap-3">
+              {/* Search input */}
+              <div className="relative min-w-[240px]">
+                <FaSearch className="absolute left-3.5 top-3.5 text-slate-400 dark:text-slate-500 text-sm" />
+                <input
+                  type="text"
+                  placeholder="Search employees..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="w-full pl-10 pr-4 py-2.5 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 focus:border-blue-500 rounded-xl text-sm text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 outline-none transition duration-200"
+                />
+                {searchTerm && (
+                  <button
+                    onClick={() => setSearchTerm("")}
+                    className="absolute right-3 top-3 text-slate-400 hover:text-slate-700 dark:hover:text-white"
+                  >
+                    <FaTimes className="text-xs" />
+                  </button>
+                )}
+              </div>
+
+              {/* Title Filter Dropdown */}
+              <select
+                value={titleFilter}
+                onChange={(e) => setTitleFilter(e.target.value)}
+                className="bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 focus:border-blue-500 rounded-xl px-4 py-2.5 text-sm text-slate-700 dark:text-slate-300 outline-none cursor-pointer transition duration-200"
+              >
+                <option value="">All Roles</option>
+                {getUniqueTitles().map((title) => (
+                  <option key={title} value={title}>
+                    {title}
+                  </option>
+                ))}
+              </select>
+
+              {/* Reset button if filter is active */}
+              {(searchTerm || titleFilter) && (
+                <button
+                  onClick={() => {
+                    setSearchTerm("");
+                    setTitleFilter("");
+                  }}
+                  className="text-xs text-blue-400 hover:text-blue-300 font-medium px-2 py-1"
+                >
+                  Clear Filters
+                </button>
+              )}
+
+              {/* Add Employee Button */}
+              <button
+                onClick={() => navigate("/employee/new")}
+                className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium transition duration-200 ml-auto border border-transparent whitespace-nowrap"
+              >
+                <span>+ Add Employee</span>
+              </button>
             </div>
           </div>
 
-          <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xl flex items-center justify-between relative overflow-hidden group hover:border-emerald-300 dark:hover:border-emerald-900/50 transition-all duration-300">
-            <div className="absolute -right-6 -bottom-6 w-24 h-24 bg-emerald-500/5 rounded-full blur-2xl group-hover:bg-emerald-500/10 transition duration-300"></div>
-            <div>
-              <p className="text-slate-500 dark:text-slate-400 text-sm font-medium uppercase tracking-wider transition-colors">Active Managers</p>
-              <h3 className="text-4xl font-extrabold text-slate-900 dark:text-white mt-1 transition-colors">{loading ? "..." : totalManagers}</h3>
-            </div>
-            <div className="w-12 h-12 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-100 dark:border-emerald-900/50 flex items-center justify-center text-emerald-600 dark:text-emerald-400 shadow-inner transition-colors">
-              <FaUserTie className="text-xl" />
-            </div>
-          </div>
+          {/* Directory Content */}
+          <div className="overflow-x-auto scrollbar-thin scrollbar-thumb-slate-300 dark:scrollbar-thumb-slate-800 scrollbar-track-transparent transition-colors">
+            {loading ? (
+              /* Skeletal Loading Animation */
+              <div className="p-8 space-y-4">
+                {[1, 2, 3, 4, 5].map((i) => (
+                  <div key={i} className="flex gap-4 items-center animate-pulse">
+                    <div className="w-10 h-10 rounded-full bg-slate-200 dark:bg-slate-800"></div>
+                    <div className="flex-1 space-y-2">
+                      <div className="h-4 bg-slate-200 dark:bg-slate-800 rounded w-1/4"></div>
+                      <div className="h-3 bg-slate-200 dark:bg-slate-800 rounded w-1/2"></div>
+                    </div>
+                    <div className="w-24 h-6 bg-slate-200 dark:bg-slate-800 rounded"></div>
+                  </div>
+                ))}
+              </div>
+            ) : error ? (
+              /* Error Display */
+              <div className="p-12 text-center">
+                <div className="w-16 h-16 bg-red-950/40 text-red-500 border border-red-900/50 rounded-full flex items-center justify-center mx-auto text-2xl mb-4">
+                  ⚠
+                </div>
+                <h3 className="text-lg font-semibold text-white">Something went wrong</h3>
+                <p className="text-slate-400 text-sm mt-1 max-w-md mx-auto">{error}</p>
+                <button
+                  onClick={fetchEmployees}
+                  className="mt-6 px-5 py-2.5 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-sm font-medium transition duration-200"
+                >
+                  Retry Fetching
+                </button>
+              </div>
+            ) : filteredEmployees.length === 0 ? (
+              /* No Results Match */
+              <div className="p-12 text-center text-slate-400">
+                <p className="text-lg font-medium text-slate-300">No employees match your criteria.</p>
+                <p className="text-sm mt-1">Try resetting the search terms or role filters.</p>
+              </div>
+            ) : (
+              /* Actual Data Table */
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  <tr className="bg-slate-50/80 dark:bg-slate-950/40 border-b border-slate-200 dark:border-slate-800/80 text-slate-500 dark:text-slate-400 text-xs font-semibold uppercase tracking-wider transition-colors">
+                    <th
+                      onClick={() => handleSort("employeeId")}
+                      className="px-6 py-4 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800/40 transition-colors select-none"
+                    >
+                      Emp ID {renderSortIcon("employeeId")}
+                    </th>
+                    <th
+                      onClick={() => handleSort("name")}
+                      className="px-6 py-4 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800/40 transition-colors select-none"
+                    >
+                      Employee Name {renderSortIcon("name")}
+                    </th>
+                    <th className="px-6 py-4">Email Address</th>
+                    <th
+                      onClick={() => handleSort("title")}
+                      className="px-6 py-4 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800/40 transition-colors select-none"
+                    >
+                      Job Title {renderSortIcon("title")}
+                    </th>
+                    <th className="px-6 py-4">Manager</th>
+                    <th className="px-6 py-4">Contact Info</th>
+                    <th className="px-6 py-4 text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-200 dark:divide-slate-800/60 transition-colors">
+                  {filteredEmployees.map((emp) => (
+                    <tr
+                      key={emp.id}
+                      onClick={() => setSelectedEmployee(emp)}
+                      className="hover:bg-slate-50 active:bg-slate-100 dark:hover:bg-slate-800/30 dark:active:bg-slate-800/50 cursor-pointer group transition duration-150"
+                    >
+                      {/* Employee ID */}
+                      <td className="px-6 py-4 font-mono text-sm text-blue-600 dark:text-blue-400 font-semibold group-hover:text-blue-500 dark:group-hover:text-blue-300 transition-colors">
+                        {emp.employeeId || "-"}
+                      </td>
 
-          <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xl flex items-center justify-between relative overflow-hidden group hover:border-violet-300 dark:hover:border-violet-900/50 transition-all duration-300">
-          
-            <div className="absolute -right-6 -bottom-6 w-24 h-24 bg-violet-500/5 rounded-full blur-2xl group-hover:bg-violet-500/10 transition duration-300"></div>
-            <div>
-              <p className="text-slate-500 dark:text-slate-400 text-sm font-medium uppercase tracking-wider transition-colors">Unique Job Roles</p>
-              <h3 className="text-4xl font-extrabold text-slate-900 dark:text-white mt-1 transition-colors">{loading ? "..." : totalRoles}</h3>
-            </div>
-            <div className="w-12 h-12 rounded-xl bg-violet-50 dark:bg-violet-950/60 border border-violet-100 dark:border-violet-900/50 flex items-center justify-center text-violet-600 dark:text-violet-400 shadow-inner transition-colors">
-              <FaBriefcase className="text-xl" />
-            </div>
-          </div>
+                      {/* Name & Avatar */}
+                      <td className="px-6 py-4">
+                        <div className="flex items-center gap-3">
+                          <div className="w-9 h-9 rounded-full bg-slate-200 dark:bg-slate-800 flex items-center justify-center text-xs font-bold text-slate-600 dark:text-slate-300 border border-slate-300/60 dark:border-slate-700/60 group-hover:border-blue-300 dark:group-hover:border-blue-500/50 group-hover:text-blue-600 dark:group-hover:text-blue-300 transition duration-150">
+                            {getInitials(emp)}
+                          </div>
+                          <div>
+                            <div className="font-semibold text-slate-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-300 transition duration-150">
+                              {formatFullName(emp)}
+                            </div>
+                            <div className="text-xs text-slate-500 dark:text-slate-400">
+                              @{emp.userName || "anonymous"}
+                            </div>
+                          </div>
+                        </div>
+                      </td>
 
-          <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xl flex items-center justify-between relative overflow-hidden group hover:border-pink-300 dark:hover:border-pink-900/50 transition-all duration-300">
-            <div className="absolute -right-6 -bottom-6 w-24 h-24 bg-pink-500/5 rounded-full blur-2xl group-hover:bg-pink-500/10 transition duration-300"></div>
-            <div>
-              <p className="text-slate-500 dark:text-slate-400 text-sm font-medium uppercase tracking-wider transition-colors">Total Interns</p>
-              <h3 className="text-4xl font-extrabold text-slate-900 dark:text-white mt-1 transition-colors">{loading ? "..." : totalInterns}</h3>
-            </div>
-            <div className="w-12 h-12 rounded-xl bg-pink-50 dark:bg-pink-950/60 border border-pink-100 dark:border-pink-900/50 flex items-center justify-center text-pink-600 dark:text-pink-400 shadow-inner transition-colors">
-              <FaGraduationCap className="text-xl" />
-            </div>
-          </div>
+                      {/* Email */}
+                      <td className="px-6 py-4 text-sm text-slate-600 dark:text-slate-300 transition-colors">
+                        {emp.email || "-"}
+                      </td>
 
-          <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xl flex items-center justify-between relative overflow-hidden group hover:border-amber-300 dark:hover:border-amber-900/50 transition-all duration-300">
-            <div className="absolute -right-6 -bottom-6 w-24 h-24 bg-amber-500/5 rounded-full blur-2xl group-hover:bg-amber-500/10 transition duration-300"></div>
-            <div>
-              <p className="text-slate-500 dark:text-slate-400 text-sm font-medium uppercase tracking-wider transition-colors">Govt Holidays</p>
-              <h3 className="text-4xl font-extrabold text-slate-900 dark:text-white mt-1 transition-colors">{holidays.length === 0 ? "..." : totalHolidays}</h3>
-            </div>
-            <div className="w-12 h-12 rounded-xl bg-amber-50 dark:bg-amber-950/60 border border-amber-100 dark:border-amber-900/50 flex items-center justify-center text-amber-600 dark:text-amber-400 shadow-inner transition-colors">
-              <FaCalendarAlt className="text-xl" />
-            </div>
-          </div>
+                      {/* Title badge */}
+                      <td className="px-6 py-4 text-xs font-medium">
+                        <span className={`px-2.5 py-1 rounded-full text-xs font-semibold whitespace-nowrap inline-block ${getTitleBadgeStyles(emp.title)}`}>
+                          {emp.title || "No Title"}
+                        </span>
+                      </td>
 
-          <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xl flex items-center justify-between relative overflow-hidden group hover:border-rose-300 dark:hover:border-rose-900/50 transition-all duration-300">
-            <div className="absolute -right-6 -bottom-6 w-24 h-24 bg-rose-500/5 rounded-full blur-2xl group-hover:bg-rose-500/10 transition duration-300"></div>
-            <div>
-              <p className="text-slate-500 dark:text-slate-400 text-sm font-medium uppercase tracking-wider transition-colors">Pending Leaves</p>
-              <h3 className="text-4xl font-extrabold text-slate-900 dark:text-white mt-1 transition-colors">{leaveRequests.length === 0 ? "..." : pendingLeaves}</h3>
-            </div>
-            <div className="w-12 h-12 rounded-xl bg-rose-50 dark:bg-rose-950/60 border border-rose-100 dark:border-rose-900/50 flex items-center justify-center text-rose-600 dark:text-rose-400 shadow-inner transition-colors">
-              <FaEnvelope className="text-xl" />
-            </div>
+                      {/* Manager */}
+                      <td className="px-6 py-4 text-sm text-slate-600 dark:text-slate-300 transition-colors">
+                        {emp.managerName ? (
+                          <div className="flex items-center gap-1.5">
+                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                            <span>{emp.managerName}</span>
+                          </div>
+                        ) : (
+                          <span className="text-slate-400 dark:text-slate-500 italic text-xs">None (Executive)</span>
+                        )}
+                      </td>
+
+                      {/* Contact Info */}
+                      <td className="px-6 py-4 text-xs text-slate-500 dark:text-slate-400 transition-colors">
+                        {formatPhone(emp.phoneNumber, emp.mobileNumber)}
+                      </td>
+
+                      {/* Actions */}
+                      <td className="px-6 py-4 text-right">
+                        <div className="flex justify-end gap-2">
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setSelectedEmployee(emp);
+                            }}
+                            title="View Profile"
+                            className="p-2 text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/40 hover:bg-blue-600 hover:text-white dark:hover:bg-blue-600 dark:hover:text-white rounded-lg border border-blue-200 dark:border-blue-900/50 hover:border-blue-500 transition duration-200 flex items-center justify-center"
+                          >
+                            <FaEye className="text-sm" />
+                          </button>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              navigate(`/employee/${emp.id}`);
+                            }}
+                            title="Edit Employee"
+                            className="p-2 text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/40 hover:bg-amber-500 hover:text-white dark:hover:bg-amber-500 dark:hover:text-white rounded-lg border border-amber-200 dark:border-amber-900/50 hover:border-amber-500 transition duration-200 flex items-center justify-center"
+                          >
+                            <FaEdit className="text-sm" />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
           </div>
         </section>
-
-        {/* Dashboard Charts */}
-        <DashboardCharts employees={employees} getGenderName={getGenderName} leaveRequests={leaveRequests} holidays={holidays} />
-
-
       </main>
 
+      {/* Side Slide-Over Drawer for Employee Details */}
+      {selectedEmployee && (
+        <div className="fixed inset-0 z-50 overflow-hidden">
+          {/* Dark Overlay backdrop */}
+          <div
+            onClick={() => setSelectedEmployee(null)}
+            className="absolute inset-0 bg-slate-900/40 dark:bg-slate-950/80 backdrop-blur-sm transition-opacity duration-300"
+          ></div>
 
+          <div className="absolute inset-y-0 right-0 max-w-full flex pl-10">
+            <div className="w-screen max-w-md transform bg-white dark:bg-slate-900 border-l border-slate-200 dark:border-slate-800 shadow-2xl transition-all duration-300 flex flex-col justify-between">
+              {/* Drawer Header */}
+              <div className="p-6 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between bg-slate-50/40 dark:bg-slate-900/40 transition-colors">
+                <div className="flex items-center gap-2">
+                  <FaUserAlt className="text-blue-500 text-sm" />
+                  <h2 className="text-lg font-bold text-slate-900 dark:text-white transition-colors">Employee Profile</h2>
+                </div>
+                <button
+                  onClick={() => setSelectedEmployee(null)}
+                  className="p-1 rounded-lg text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white transition-colors duration-150"
+                >
+                  <FaTimes className="text-lg" />
+                </button>
+              </div>
+
+              {/* Drawer Content */}
+              <div className="flex-1 overflow-y-auto p-6 space-y-6">
+                {/* Banner & Avatar section */}
+                <div className="text-center relative">
+                  <div className="w-24 h-24 rounded-2xl bg-gradient-to-tr from-blue-600 to-indigo-500 flex items-center justify-center text-3xl font-bold text-white mx-auto shadow-[0_0_20px_rgba(59,130,246,0.4)]">
+                    {getInitials(selectedEmployee)}
+                  </div>
+                  <h3 className="text-xl font-bold text-slate-900 dark:text-white mt-4 transition-colors">
+                    {formatFullName(selectedEmployee)}
+                  </h3>
+                  <p className="text-blue-600 dark:text-blue-400 text-sm font-semibold mt-1 transition-colors">
+                    {selectedEmployee.title || "No Specified Title"}
+                  </p>
+                  <span className="inline-block mt-2 font-mono text-xs text-slate-600 dark:text-slate-500 bg-slate-100 dark:bg-slate-950/80 px-2 py-0.5 rounded border border-slate-300 dark:border-slate-800 transition-colors">
+                    ID: {selectedEmployee.employeeId || "N/A"}
+                  </span>
+                </div>
+
+                <hr className="border-slate-200 dark:border-slate-800/80 transition-colors" />
+
+                {/* Details Section */}
+                <div className="space-y-4">
+                  <h4 className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider transition-colors">Contact & Work Information</h4>
+
+                  <div className="grid grid-cols-1 gap-4">
+                    <div className="bg-slate-50 dark:bg-slate-950/60 p-3 rounded-xl border border-slate-200 dark:border-slate-800 flex items-center gap-3 transition-colors">
+                      <div className="text-slate-500 dark:text-slate-400 w-8 text-center"><FaEnvelope className="inline" /></div>
+                      <div>
+                        <div className="text-[10px] text-slate-500 font-semibold uppercase transition-colors">Email</div>
+                        <div className="text-sm text-slate-900 dark:text-slate-200 transition-colors">{selectedEmployee.email || "N/A"}</div>
+                      </div>
+                    </div>
+
+                    <div className="bg-slate-50 dark:bg-slate-950/60 p-3 rounded-xl border border-slate-200 dark:border-slate-800 flex items-center gap-3 transition-colors">
+                      <div className="text-slate-500 dark:text-slate-400 w-8 text-center"><FaPhoneAlt className="inline" /></div>
+                      <div>
+                        <div className="text-[10px] text-slate-500 font-semibold uppercase transition-colors">Phone Details</div>
+                        <div className="text-sm text-slate-900 dark:text-slate-200 transition-colors">
+                          {formatPhone(selectedEmployee.phoneNumber, selectedEmployee.mobileNumber)}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="bg-slate-50 dark:bg-slate-950/60 p-3 rounded-xl border border-slate-200 dark:border-slate-800 flex items-center gap-3 transition-colors">
+                      <div className="text-slate-500 dark:text-slate-400 w-8 text-center"><FaGraduationCap className="inline text-base" /></div>
+                      <div>
+                        <div className="text-[10px] text-slate-500 font-semibold uppercase transition-colors">Degree Qualification</div>
+                        <div className="text-sm text-slate-900 dark:text-slate-200 transition-colors">{selectedEmployee.degree || "N/A"}</div>
+                      </div>
+                    </div>
+
+                    <div className="bg-slate-50 dark:bg-slate-950/60 p-3 rounded-xl border border-slate-200 dark:border-slate-800 flex items-center gap-3 transition-colors">
+                      <div className="text-slate-500 dark:text-slate-400 w-8 text-center"><FaCalendarAlt className="inline" /></div>
+                      <div>
+                        <div className="text-[10px] text-slate-500 font-semibold uppercase transition-colors">Date of Birth</div>
+                        <div className="text-sm text-slate-900 dark:text-slate-200 transition-colors">{selectedEmployee.dob || "N/A"}</div>
+                      </div>
+                    </div>
+
+                    <div className="bg-slate-50 dark:bg-slate-950/60 p-3 rounded-xl border border-slate-200 dark:border-slate-800 flex items-center gap-3 transition-colors">
+                      <div className="text-slate-500 dark:text-slate-400 w-8 text-center"><FaUserTie className="inline" /></div>
+                      <div>
+                        <div className="text-[10px] text-slate-500 font-semibold uppercase transition-colors">Reports To Manager</div>
+                        <div className="text-sm text-slate-900 dark:text-slate-200 transition-colors">{selectedEmployee.managerName || "None"}</div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <hr className="border-slate-200 dark:border-slate-800/80 transition-colors" />
+
+                {/* System IDs / Database metadata */}
+                <div className="space-y-4">
+                  <h4 className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider transition-colors">System Metadata</h4>
+
+                  <div className="space-y-3 font-mono text-xs text-slate-500 dark:text-slate-400 transition-colors">
+                    <div>
+                      <span className="block text-[10px] text-slate-400 dark:text-slate-600 font-bold uppercase mb-1 transition-colors">Record ID (UUID)</span>
+                      <code className="block bg-slate-50 dark:bg-slate-950/90 p-2 rounded border border-slate-200 dark:border-slate-800 break-all select-all text-blue-600 dark:text-blue-400 transition-colors">
+                        {selectedEmployee.id}
+                      </code>
+                    </div>
+
+                    {selectedEmployee.reportsToId && selectedEmployee.reportsToId !== "00000000-0000-0000-0000-000000000000" && (
+                      <div>
+                        <span className="block text-[10px] text-slate-400 dark:text-slate-600 font-bold uppercase mb-1 transition-colors">Reports To</span>
+                        <code className="block bg-slate-50 dark:bg-slate-950/90 p-2 rounded border border-slate-200 dark:border-slate-800 break-all select-all transition-colors text-slate-800 dark:text-slate-200">
+                          {getManagerNameById(selectedEmployee.reportsToId)}
+                        </code>
+                      </div>
+                    )}
+
+                    {selectedEmployee.genderId && selectedEmployee.genderId !== "00000000-0000-0000-0000-000000000000" && (
+                      <div>
+                        <span className="block text-[10px] text-slate-400 dark:text-slate-600 font-bold uppercase mb-1 transition-colors">Gender</span>
+                        <code className="block bg-slate-50 dark:bg-slate-950/90 p-2 rounded border border-slate-200 dark:border-slate-800 break-all select-all transition-colors text-slate-800 dark:text-slate-200">
+                          {getGenderName(selectedEmployee.genderId)}
+                        </code>
+                      </div>
+                    )}
+
+                    {selectedEmployee.userTypeId && selectedEmployee.userTypeId !== "00000000-0000-0000-0000-000000000000" && (
+                      <div>
+                        <span className="block text-[10px] text-slate-400 dark:text-slate-600 font-bold uppercase mb-1 transition-colors">User Type</span>
+                        <code className="block bg-slate-50 dark:bg-slate-950/90 p-2 rounded border border-slate-200 dark:border-slate-800 break-all select-all transition-colors text-slate-800 dark:text-slate-200">
+                          {getUserTypeName(selectedEmployee.userTypeId)}
+                        </code>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Drawer Footer */}
+              <div className="p-6 border-t border-slate-200 dark:border-slate-800 bg-slate-50/40 dark:bg-slate-900/40 flex justify-end transition-colors">
+                <button
+                  onClick={() => setSelectedEmployee(null)}
+                  className="w-full md:w-auto px-5 py-2 bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-900 dark:text-white rounded-lg text-sm font-semibold transition-colors duration-150"
+                >
+                  Close Profile
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Slide-Over Drawer for "My Profile" */}
       {isMyProfileOpen && (
@@ -976,4 +1343,4 @@ function Dashboard() {
   );
 }
 
-export default Dashboard;
+export default EmployeeDirectory;
