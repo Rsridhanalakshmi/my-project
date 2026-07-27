@@ -52,6 +52,10 @@ function EmployeeDirectory() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
+  // Pagination states
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
+
   // Profile management states
   const [isMyProfileOpen, setIsMyProfileOpen] = useState(false);
   const [isMyProfileEditing, setIsMyProfileEditing] = useState(false);
@@ -538,12 +542,37 @@ function EmployeeDirectory() {
 
 
 
-        <section className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-2xl overflow-hidden transition-colors duration-300">
+        {/* Animated Hero Header */}
+        <div className="relative w-full rounded-[2rem] bg-gradient-to-br from-blue-600 via-indigo-700 to-purple-800 p-8 sm:p-12 mb-8 shadow-2xl overflow-hidden group">
+          {/* Animated Background Mesh/Blobs */}
+          <div className="absolute -top-24 -right-24 w-64 h-64 bg-white/10 blur-3xl rounded-full group-hover:scale-150 transition-transform duration-700 ease-in-out"></div>
+          <div className="absolute -bottom-24 -left-24 w-80 h-80 bg-blue-400/20 blur-3xl rounded-full group-hover:scale-125 transition-transform duration-1000 ease-in-out"></div>
+          
+          <div className="relative z-10 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+            <div>
+              <h1 className="text-4xl sm:text-5xl font-extrabold text-white tracking-tight mb-2 drop-shadow-sm">
+                Employee
+              </h1>
+              <p className="text-blue-100/90 text-lg max-w-xl font-medium">
+                Manage your team, explore credentials, and connect with colleagues instantly.
+              </p>
+            </div>
+            
+            <div className="flex gap-4">
+              <div className="bg-white/10 backdrop-blur-md rounded-2xl p-5 border border-white/20 text-center min-w-[140px] shadow-lg">
+                <p className="text-blue-100 text-xs font-bold uppercase tracking-wider mb-1">Total Staff</p>
+                <p className="text-4xl font-extrabold text-white">{employees.length}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <section className="bg-white dark:bg-slate-900 rounded-[2rem] border border-slate-200 dark:border-slate-800 shadow-2xl overflow-hidden transition-colors duration-300">
           {/* Table Header Filter & Search Bar */}
           <div className="p-6 border-b border-slate-200 dark:border-slate-800 flex flex-col md:flex-row md:items-center justify-between gap-4 bg-slate-50/50 dark:bg-slate-900/50 transition-colors">
             <div>
-              <h2 className="text-lg font-bold text-slate-900 dark:text-white transition-colors">Employee Directory</h2>
-              <p className="text-sm text-slate-500 dark:text-slate-400 transition-colors">Search, filter, and view detailed credentials of your staff.</p>
+              <h2 className="text-xl font-bold text-slate-900 dark:text-white transition-colors">Filters & Search</h2>
+              <p className="text-sm text-slate-500 dark:text-slate-400 transition-colors">Narrow down the list by typing or selecting a role.</p>
             </div>
 
             <div className="flex flex-wrap items-center gap-3">
@@ -554,7 +583,10 @@ function EmployeeDirectory() {
                   type="text"
                   placeholder="Search employees..."
                   value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
+                  onChange={(e) => {
+                    setSearchTerm(e.target.value);
+                    setCurrentPage(1);
+                  }}
                   className="w-full pl-10 pr-4 py-2.5 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 focus:border-blue-500 rounded-xl text-sm text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 outline-none transition duration-200"
                 />
                 {searchTerm && (
@@ -570,7 +602,10 @@ function EmployeeDirectory() {
               {/* Title Filter Dropdown */}
               <select
                 value={titleFilter}
-                onChange={(e) => setTitleFilter(e.target.value)}
+                onChange={(e) => {
+                  setTitleFilter(e.target.value);
+                  setCurrentPage(1);
+                }}
                 className="bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 focus:border-blue-500 rounded-xl px-4 py-2.5 text-sm text-slate-700 dark:text-slate-300 outline-none cursor-pointer transition duration-200"
               >
                 <option value="">All Roles</option>
@@ -587,6 +622,7 @@ function EmployeeDirectory() {
                   onClick={() => {
                     setSearchTerm("");
                     setTitleFilter("");
+                    setCurrentPage(1);
                   }}
                   className="text-xs text-blue-400 hover:text-blue-300 font-medium px-2 py-1"
                 >
@@ -594,13 +630,6 @@ function EmployeeDirectory() {
                 </button>
               )}
 
-              {/* Add Employee Button */}
-              <button
-                onClick={() => navigate("/employee/new")}
-                className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium transition duration-200 ml-auto border border-transparent whitespace-nowrap"
-              >
-                <span>+ Add Employee</span>
-              </button>
             </div>
           </div>
 
@@ -608,15 +637,15 @@ function EmployeeDirectory() {
           <div className="overflow-x-auto scrollbar-thin scrollbar-thumb-slate-300 dark:scrollbar-thumb-slate-800 scrollbar-track-transparent transition-colors">
             {loading ? (
               /* Skeletal Loading Animation */
-              <div className="p-8 space-y-4">
+              <div className="p-8 space-y-5">
                 {[1, 2, 3, 4, 5].map((i) => (
                   <div key={i} className="flex gap-4 items-center animate-pulse">
-                    <div className="w-10 h-10 rounded-full bg-slate-200 dark:bg-slate-800"></div>
-                    <div className="flex-1 space-y-2">
-                      <div className="h-4 bg-slate-200 dark:bg-slate-800 rounded w-1/4"></div>
-                      <div className="h-3 bg-slate-200 dark:bg-slate-800 rounded w-1/2"></div>
+                    <div className="w-10 h-10 rounded-full bg-gradient-to-r from-slate-200 via-slate-100 to-slate-200 dark:from-slate-800 dark:via-slate-700 dark:to-slate-800 shadow-sm border border-slate-100 dark:border-slate-800"></div>
+                    <div className="flex-1 space-y-3">
+                      <div className="h-4 bg-gradient-to-r from-slate-200 via-slate-100 to-slate-200 dark:from-slate-800 dark:via-slate-700 dark:to-slate-800 rounded w-1/4 shadow-sm"></div>
+                      <div className="h-3 bg-gradient-to-r from-slate-200 via-slate-100 to-slate-200 dark:from-slate-800 dark:via-slate-700 dark:to-slate-800 rounded w-1/2 shadow-sm"></div>
                     </div>
-                    <div className="w-24 h-6 bg-slate-200 dark:bg-slate-800 rounded"></div>
+                    <div className="w-24 h-6 bg-gradient-to-r from-slate-200 via-slate-100 to-slate-200 dark:from-slate-800 dark:via-slate-700 dark:to-slate-800 rounded-lg shadow-sm"></div>
                   </div>
                 ))}
               </div>
@@ -636,129 +665,146 @@ function EmployeeDirectory() {
                 </button>
               </div>
             ) : filteredEmployees.length === 0 ? (
-              /* No Results Match */
-              <div className="p-12 text-center text-slate-400">
-                <p className="text-lg font-medium text-slate-300">No employees match your criteria.</p>
-                <p className="text-sm mt-1">Try resetting the search terms or role filters.</p>
+              /* Beautiful Empty State */
+              <div className="flex flex-col items-center justify-center p-16 text-center">
+                <div className="w-24 h-24 mb-6 rounded-full bg-slate-100 dark:bg-slate-800/50 flex items-center justify-center relative shadow-inner">
+                  <FaSearch className="text-4xl text-slate-300 dark:text-slate-600 absolute" />
+                  <div className="absolute inset-0 bg-gradient-to-tr from-blue-500/10 to-transparent rounded-full animate-pulse"></div>
+                </div>
+                <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2">No employees found</h3>
+                <p className="text-sm text-slate-500 dark:text-slate-400 max-w-md mx-auto mb-6">
+                  We couldn't find anyone matching "{searchTerm || titleFilter || 'your criteria'}". Try adjusting your search or filters to find what you're looking for.
+                </p>
+                {(searchTerm || titleFilter) && (
+                  <button
+                    onClick={() => {
+                      setSearchTerm("");
+                      setTitleFilter("");
+                      setCurrentPage(1);
+                    }}
+                    className="px-6 py-2.5 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-xl text-sm font-semibold shadow-sm transition-all duration-200"
+                  >
+                    Clear All Filters
+                  </button>
+                )}
               </div>
             ) : (
-              /* Actual Data Table */
-              <table className="w-full text-left border-collapse">
-                <thead>
-                  <tr className="bg-slate-50/80 dark:bg-slate-950/40 border-b border-slate-200 dark:border-slate-800/80 text-slate-500 dark:text-slate-400 text-xs font-semibold uppercase tracking-wider transition-colors">
-                    <th
-                      onClick={() => handleSort("employeeId")}
-                      className="px-6 py-4 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800/40 transition-colors select-none"
-                    >
-                      Emp ID {renderSortIcon("employeeId")}
-                    </th>
-                    <th
-                      onClick={() => handleSort("name")}
-                      className="px-6 py-4 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800/40 transition-colors select-none"
-                    >
-                      Employee Name {renderSortIcon("name")}
-                    </th>
-                    <th className="px-6 py-4">Email Address</th>
-                    <th
-                      onClick={() => handleSort("title")}
-                      className="px-6 py-4 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800/40 transition-colors select-none"
-                    >
-                      Job Title {renderSortIcon("title")}
-                    </th>
-                    <th className="px-6 py-4">Manager</th>
-                    <th className="px-6 py-4">Contact Info</th>
-                    <th className="px-6 py-4 text-right">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-200 dark:divide-slate-800/60 transition-colors">
-                  {filteredEmployees.map((emp) => (
-                    <tr
+              /* Interactive Card Grid View */
+              <div className="p-6 bg-slate-50/30 dark:bg-slate-950/20">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                  {filteredEmployees.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage).map((emp) => (
+                    <div
                       key={emp.id}
                       onClick={() => setSelectedEmployee(emp)}
-                      className="hover:bg-slate-50 active:bg-slate-100 dark:hover:bg-slate-800/30 dark:active:bg-slate-800/50 cursor-pointer group transition duration-150"
+                      className="group relative bg-white dark:bg-slate-900 rounded-3xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm hover:shadow-2xl hover:-translate-y-2 hover:border-blue-300 dark:hover:border-blue-700 transition-all duration-300 cursor-pointer overflow-hidden flex flex-col min-h-[260px]"
                     >
-                      {/* Employee ID */}
-                      <td className="px-6 py-4 font-mono text-sm text-blue-600 dark:text-blue-400 font-semibold group-hover:text-blue-500 dark:group-hover:text-blue-300 transition-colors">
-                        {emp.employeeId || "-"}
-                      </td>
-
-                      {/* Name & Avatar */}
-                      <td className="px-6 py-4">
-                        <div className="flex items-center gap-3">
-                          <div className="w-9 h-9 rounded-full bg-slate-200 dark:bg-slate-800 flex items-center justify-center text-xs font-bold text-slate-600 dark:text-slate-300 border border-slate-300/60 dark:border-slate-700/60 group-hover:border-blue-300 dark:group-hover:border-blue-500/50 group-hover:text-blue-600 dark:group-hover:text-blue-300 transition duration-150">
-                            {getInitials(emp)}
-                          </div>
-                          <div>
-                            <div className="font-semibold text-slate-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-300 transition duration-150">
-                              {formatFullName(emp)}
-                            </div>
-                            <div className="text-xs text-slate-500 dark:text-slate-400">
-                              @{emp.userName || "anonymous"}
-                            </div>
-                          </div>
+                      {/* Top decorative gradient line */}
+                      <div className="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-blue-500 to-indigo-500 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                      
+                      <div className="flex justify-between items-start mb-4 relative z-10">
+                        <div className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-blue-100 to-indigo-100 dark:from-blue-900/40 dark:to-indigo-900/40 flex items-center justify-center text-xl font-bold text-blue-700 dark:text-blue-400 shadow-inner border border-white/50 dark:border-slate-700 group-hover:scale-110 group-hover:-rotate-3 transition-transform duration-300">
+                          {getInitials(emp)}
                         </div>
-                      </td>
-
-                      {/* Email */}
-                      <td className="px-6 py-4 text-sm text-slate-600 dark:text-slate-300 transition-colors">
-                        {emp.email || "-"}
-                      </td>
-
-                      {/* Title badge */}
-                      <td className="px-6 py-4 text-xs font-medium">
-                        <span className={`px-2.5 py-1 rounded-full text-xs font-semibold whitespace-nowrap inline-block ${getTitleBadgeStyles(emp.title)}`}>
+                        <span className={`px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider ${getTitleBadgeStyles(emp.title)}`}>
                           {emp.title || "No Title"}
                         </span>
-                      </td>
+                      </div>
 
-                      {/* Manager */}
-                      <td className="px-6 py-4 text-sm text-slate-600 dark:text-slate-300 transition-colors">
-                        {emp.managerName ? (
-                          <div className="flex items-center gap-1.5">
-                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-                            <span>{emp.managerName}</span>
-                          </div>
-                        ) : (
-                          <span className="text-slate-400 dark:text-slate-500 italic text-xs">None (Executive)</span>
-                        )}
-                      </td>
+                      <div className="mb-5 relative z-10">
+                        <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-1 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+                          {formatFullName(emp)}
+                        </h3>
+                        <p className="text-xs text-slate-500 dark:text-slate-400 font-medium truncate">
+                          @{emp.userName || "anonymous"} • ID: {emp.employeeId || "-"}
+                        </p>
+                      </div>
 
-                      {/* Contact Info */}
-                      <td className="px-6 py-4 text-xs text-slate-500 dark:text-slate-400 transition-colors">
-                        {formatPhone(emp.phoneNumber, emp.mobileNumber)}
-                      </td>
-
-                      {/* Actions */}
-                      <td className="px-6 py-4 text-right">
-                        <div className="flex justify-end gap-2">
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setSelectedEmployee(emp);
-                            }}
-                            title="View Profile"
-                            className="p-2 text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/40 hover:bg-blue-600 hover:text-white dark:hover:bg-blue-600 dark:hover:text-white rounded-lg border border-blue-200 dark:border-blue-900/50 hover:border-blue-500 transition duration-200 flex items-center justify-center"
-                          >
-                            <FaEye className="text-sm" />
-                          </button>
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              navigate(`/employee/${emp.id}`);
-                            }}
-                            title="Edit Employee"
-                            className="p-2 text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/40 hover:bg-amber-500 hover:text-white dark:hover:bg-amber-500 dark:hover:text-white rounded-lg border border-amber-200 dark:border-amber-900/50 hover:border-amber-500 transition duration-200 flex items-center justify-center"
-                          >
-                            <FaEdit className="text-sm" />
-                          </button>
+                      <div className="space-y-3 mt-auto pt-4 border-t border-slate-100 dark:border-slate-800/80 relative z-10">
+                        <div className="flex items-center gap-3 text-sm text-slate-600 dark:text-slate-300">
+                          <div className="w-7 h-7 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-400 flex-shrink-0"><FaEnvelope className="text-[10px]" /></div>
+                          <span className="truncate text-xs font-medium">{emp.email || "-"}</span>
                         </div>
-                      </td>
-                    </tr>
+                        <div className="flex items-center gap-3 text-sm text-slate-600 dark:text-slate-300">
+                          <div className="w-7 h-7 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-400 flex-shrink-0"><FaUserTie className="text-[10px]" /></div>
+                          <span className="truncate text-xs font-medium">{emp.managerName || "None"}</span>
+                        </div>
+                      </div>
+
+                      {/* Action buttons on hover */}
+                      <div className="absolute bottom-4 right-4 flex gap-2 opacity-0 translate-y-4 group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-300 z-20">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            navigate(`/employee/${emp.id}`);
+                          }}
+                          className="w-10 h-10 rounded-full bg-amber-500 hover:bg-amber-400 text-white flex items-center justify-center shadow-lg hover:scale-110 transition-transform"
+                          title="Edit Employee"
+                        >
+                          <FaEdit className="text-sm" />
+                        </button>
+                      </div>
+                    </div>
                   ))}
-                </tbody>
-              </table>
+                </div>
+              </div>
             )}
           </div>
+          {/* Pagination Controls */}
+          {!loading && !error && filteredEmployees.length > 0 && (() => {
+            const totalPages = Math.ceil(filteredEmployees.length / itemsPerPage);
+            
+            return (
+              <div className="p-4 border-t border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-4 bg-slate-50/30 dark:bg-slate-900/30">
+                <span className="text-sm text-slate-500 dark:text-slate-400 font-medium">
+                  Showing <span className="text-slate-900 dark:text-white font-semibold">{((currentPage - 1) * itemsPerPage) + 1}</span> to <span className="text-slate-900 dark:text-white font-semibold">{Math.min(currentPage * itemsPerPage, filteredEmployees.length)}</span> of <span className="text-slate-900 dark:text-white font-semibold">{filteredEmployees.length}</span> entries
+                </span>
+                
+                <div className="flex items-center gap-1.5 p-1 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl shadow-sm">
+                  <button
+                    onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                    disabled={currentPage === 1}
+                    className="px-3 py-1.5 text-xs font-semibold text-slate-600 dark:text-slate-300 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                  >
+                    Prev
+                  </button>
+                  
+                  <div className="flex gap-1 border-x border-slate-100 dark:border-slate-800 px-1">
+                    {Array.from({ length: totalPages }, (_, i) => i + 1)
+                      // Show limited pages: first, last, and around current
+                      .filter(p => p === 1 || p === totalPages || Math.abs(currentPage - p) <= 1)
+                      .map((page, index, array) => {
+                        // Add ellipses if there are gaps
+                        const showEllipsis = index > 0 && page - array[index - 1] > 1;
+                        return (
+                          <div key={page} className="flex">
+                            {showEllipsis && <span className="px-2 py-1.5 text-slate-400">...</span>}
+                            <button
+                              onClick={() => setCurrentPage(page)}
+                              className={`w-8 h-8 flex items-center justify-center rounded-lg text-xs font-bold transition-all duration-200 ${
+                                currentPage === page 
+                                  ? "bg-blue-600 text-white shadow-md shadow-blue-500/20 scale-105" 
+                                  : "text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white"
+                              }`}
+                            >
+                              {page}
+                            </button>
+                          </div>
+                        );
+                      })
+                    }
+                  </div>
+                  
+                  <button
+                    onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                    disabled={currentPage === totalPages || filteredEmployees.length === 0}
+                    className="px-3 py-1.5 text-xs font-semibold text-slate-600 dark:text-slate-300 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                  >
+                    Next
+                  </button>
+                </div>
+              </div>
+            );
+          })()}
         </section>
       </main>
 
@@ -772,7 +818,7 @@ function EmployeeDirectory() {
           ></div>
 
           <div className="absolute inset-y-0 right-0 max-w-full flex pl-10">
-            <div className="w-screen max-w-md transform bg-white dark:bg-slate-900 border-l border-slate-200 dark:border-slate-800 shadow-2xl transition-all duration-300 flex flex-col justify-between">
+            <div className="w-screen max-w-md transform bg-white/70 dark:bg-slate-900/70 backdrop-blur-2xl border-l border-white/40 dark:border-white/10 shadow-[-10px_0_30px_0_rgba(0,0,0,0.1)] transition-all duration-300 flex flex-col justify-between">
               {/* Drawer Header */}
               <div className="p-6 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between bg-slate-50/40 dark:bg-slate-900/40 transition-colors">
                 <div className="flex items-center gap-2">
@@ -791,7 +837,7 @@ function EmployeeDirectory() {
               <div className="flex-1 overflow-y-auto p-6 space-y-6">
                 {/* Banner & Avatar section */}
                 <div className="text-center relative">
-                  <div className="w-24 h-24 rounded-2xl bg-gradient-to-tr from-blue-600 to-indigo-500 flex items-center justify-center text-3xl font-bold text-white mx-auto shadow-[0_0_20px_rgba(59,130,246,0.4)]">
+                  <div className="w-24 h-24 rounded-2xl bg-gradient-to-tr from-blue-600 to-indigo-500 flex items-center justify-center text-3xl font-bold text-white mx-auto shadow-[0_10px_30px_rgba(59,130,246,0.4)] border border-white/20 transform hover:scale-105 transition-transform duration-300 cursor-default">
                     {getInitials(selectedEmployee)}
                   </div>
                   <h3 className="text-xl font-bold text-slate-900 dark:text-white mt-4 transition-colors">
@@ -1337,6 +1383,16 @@ function EmployeeDirectory() {
           </div>
         </div>
       )}
+
+      {/* Floating Action Button (FAB) */}
+      <button
+        onClick={() => navigate("/employee/new")}
+        title="Add New Employee"
+        className="fixed bottom-8 right-8 w-16 h-16 bg-blue-600 hover:bg-blue-500 text-white rounded-full shadow-[0_10px_40px_rgba(37,99,235,0.6)] hover:shadow-[0_15px_50px_rgba(37,99,235,0.8)] flex items-center justify-center text-2xl font-bold transition-all duration-300 hover:scale-110 animate-[bounce_3s_infinite] group z-40"
+      >
+        <span className="group-hover:rotate-90 transition-transform duration-300">+</span>
+      </button>
+
       {/* Floating Toast Notification */}
       <ToastContainer />
     </div>

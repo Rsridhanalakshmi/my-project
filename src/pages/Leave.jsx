@@ -16,7 +16,9 @@ import {
   FaCalendarAlt,
   FaRegFileAlt,
   FaCheck,
-  FaTimes
+  FaTimes,
+  FaAngleLeft,
+  FaAngleRight
 } from "react-icons/fa";
 
 import axios from "axios";
@@ -55,8 +57,18 @@ function Leave() {
   const [leaveIdToDelete, setLeaveIdToDelete] = useState(null);
 
   // Filter/Search states
+  const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
   const [typeFilter, setTypeFilter] = useState("");
+  
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
+
+  // Reset page when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, statusFilter, typeFilter]);
 
   const { showToast } = useToast();
 
@@ -192,87 +204,26 @@ function Leave() {
     return "bg-amber-100 dark:bg-amber-950/60 text-amber-700 dark:text-amber-400 border border-amber-300 dark:border-amber-800/40 transition-colors";
   };
 
-  // Filter leaves for DataTable by status & type only
-  const leavesFilteredByStatusAndType = useMemo(() => {
+  // Filter leaves for Grid by status, type, and search query
+  const filteredLeaves = useMemo(() => {
     return leaves.filter((l) => {
       const matchesStatus = statusFilter === "" || l.status === statusFilter || l.statusCode === statusFilter;
       const matchesType = typeFilter === "" || l.leaveType === typeFilter;
-      return matchesStatus && matchesType;
+      
+      let matchesSearch = true;
+      if (searchQuery.trim() !== "") {
+        const q = searchQuery.toLowerCase();
+        matchesSearch = (
+          (l.employeeName && l.employeeName.toLowerCase().includes(q)) ||
+          (l.reason && l.reason.toLowerCase().includes(q)) ||
+          (l.requestNumber && l.requestNumber.toLowerCase().includes(q))
+        );
+      }
+      return matchesStatus && matchesType && matchesSearch;
     });
-  }, [leaves, statusFilter, typeFilter]);
+  }, [leaves, statusFilter, typeFilter, searchQuery]);
 
-  // Columns config for DataTable
-  const tableColumns = useMemo(() => [
-    {
-      header: "Request Details",
-      accessor: "requestNumber",
-      sortable: true,
-      render: (l) => (
-        <div>
-          <div className="font-mono text-xs text-blue-600 dark:text-blue-400 font-semibold transition-colors">{l.requestNumber}</div>
-          <div className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5 transition-colors">
-            Applied: {l.appliedOnUtc ? l.appliedOnUtc.substring(0, 10) : "N/A"}
-          </div>
-        </div>
-      )
-    },
-    {
-      header: "Employee",
-      accessor: "employeeName",
-      sortable: true,
-      render: (l) => (
-        <div className="font-semibold text-slate-900 dark:text-slate-200 transition-colors">
-          {l.employeeName || "Unknown Employee"}
-        </div>
-      )
-    },
-    {
-      header: "Leave Type",
-      accessor: "leaveType",
-      sortable: true,
-      render: (l) => (
-        <span className="px-2 py-0.5 rounded text-[10px] font-bold border border-blue-200 dark:border-blue-900/40 bg-blue-50 dark:bg-blue-950/30 text-blue-600 dark:text-blue-400 uppercase transition-colors">
-          {l.leaveType}
-        </span>
-      )
-    },
-    {
-      header: "Duration",
-      accessor: "startDate",
-      sortable: true,
-      render: (l) => (
-        <div>
-          <div className="flex items-center gap-1.5 text-xs text-slate-700 dark:text-slate-300 transition-colors">
-            <FaCalendarAlt className="text-slate-500 text-[10px]" />
-            <span>{l.startDate} to {l.endDate}</span>
-          </div>
-          <div className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5 font-medium transition-colors">
-            Total Days: {l.totalDays} {l.isHalfDay && "(Half Day)"}
-          </div>
-        </div>
-      )
-    },
-    {
-      header: "Reason",
-      accessor: "reason",
-      sortable: false,
-      render: (l) => (
-        <div className="text-xs text-slate-600 dark:text-slate-400 max-w-[200px] truncate transition-colors" title={l.reason}>
-          {l.reason || <span className="italic text-slate-400 dark:text-slate-600">No reason specified</span>}
-        </div>
-      )
-    },
-    {
-      header: "Status",
-      accessor: "status",
-      sortable: true,
-      render: (l) => (
-        <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-semibold tracking-wider uppercase border ${getStatusBadgeStyles(l.status)}`}>
-          {l.status}
-        </span>
-      )
-    }
-  ], []);
+  const totalPages = Math.ceil(filteredLeaves.length / itemsPerPage) || 1;
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 font-sans antialiased pb-12 transition-colors">
@@ -346,6 +297,18 @@ function Leave() {
             </div>
 
             <div className="flex flex-wrap items-center gap-3">
+              {/* Search Bar */}
+              <div className="relative">
+                <FaSearch className="absolute left-3.5 top-3.5 text-slate-400 dark:text-slate-500 text-xs" />
+                <input
+                  type="text"
+                  placeholder="Search name, reason, request..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full sm:w-64 pl-9 pr-4 py-2 bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-800 focus:border-blue-500 rounded-xl text-xs text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 outline-none transition-colors"
+                />
+              </div>
+
               {/* Status filter */}
               <select
                 value={statusFilter}
@@ -373,7 +336,7 @@ function Leave() {
             </div>
           </div>
 
-          {/* Table content wrapper */}
+          {/* Grid content wrapper */}
           <div className="w-full bg-white dark:bg-slate-900 transition-colors">
             {loading ? (
               <div className="p-8 space-y-4">
@@ -398,44 +361,158 @@ function Leave() {
                   Retry Load
                 </button>
               </div>
+            ) : filteredLeaves.length === 0 ? (
+              <div className="flex flex-col items-center justify-center p-16 text-center">
+                <div className="w-24 h-24 rounded-full bg-blue-50 dark:bg-blue-900/20 flex items-center justify-center mb-6">
+                  <FaPlaneDeparture className="text-4xl text-blue-300 dark:text-blue-700" />
+                </div>
+                <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2">No Leave Requests Found</h3>
+                <p className="text-sm text-slate-500 dark:text-slate-400 max-w-md">
+                  There are no leave requests matching your current filters and search criteria.
+                </p>
+                <button
+                  onClick={() => {
+                    setSearchQuery("");
+                    setStatusFilter("");
+                    setTypeFilter("");
+                  }}
+                  className="mt-6 px-6 py-2.5 rounded-xl bg-blue-50 hover:bg-blue-100 dark:bg-blue-900/30 dark:hover:bg-blue-900/50 text-blue-600 dark:text-blue-400 text-sm font-semibold transition duration-200"
+                >
+                  Clear All Filters
+                </button>
+              </div>
             ) : (
-              <DataTable
-                columns={tableColumns}
-                data={leavesFilteredByStatusAndType}
-                searchPlaceholder="Search name, reason, request..."
-                searchKeys={["employeeName", "reason", "requestNumber"]}
-                itemsPerPage={10}
-                noDataMessage="No leave requests match the criteria."
-                actionsRenderer={(l) => (
-                  <>
-                    {(l.status === "PENDING" || l.statusCode === "PENDING") && (
-                      <>
-                        <button
-                          onClick={() => handleMockStatus(l.id, l.requestNumber, "APPROVED")}
-                          title="Approve Leave"
-                          className="p-1.5 text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 hover:bg-emerald-600 hover:text-white dark:hover:bg-emerald-600 dark:hover:text-white rounded border border-emerald-200 dark:border-emerald-900/50 hover:border-emerald-500 transition-colors"
-                        >
-                          <FaCheck className="text-xs" />
-                        </button>
-                        <button
-                          onClick={() => handleMockStatus(l.id, l.requestNumber, "REJECTED")}
-                          title="Reject Leave"
-                          className="p-1.5 text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/40 hover:bg-rose-600 hover:text-white dark:hover:bg-rose-600 dark:hover:text-white rounded border border-rose-200 dark:border-rose-900/50 hover:border-rose-500 transition-colors"
-                        >
-                          <FaTimes className="text-xs" />
-                        </button>
-                      </>
-                    )}
-                    <button
-                      onClick={() => handleDeleteClick(l.id)}
-                      title="Delete Request"
-                      className="p-1.5 text-slate-600 dark:text-slate-400 bg-slate-100 dark:bg-slate-800/80 hover:bg-red-600 hover:text-white dark:hover:bg-red-600 dark:hover:text-white rounded border border-slate-300 dark:border-slate-700/60 hover:border-red-500 transition-colors"
-                    >
-                      <FaTrash className="text-xs" />
-                    </button>
-                  </>
+              <>
+                <div className="p-6 bg-slate-50/30 dark:bg-slate-950/20">
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {filteredLeaves.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage).map((l) => (
+                      <div
+                        key={l.id}
+                        className="group relative bg-white dark:bg-slate-900 rounded-3xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm hover:shadow-xl hover:-translate-y-1 hover:border-blue-300 dark:hover:border-blue-700 transition-all duration-300 flex flex-col"
+                      >
+                        {/* Status Badge */}
+                        <div className="flex justify-between items-start mb-4">
+                          <span className={`px-3 py-1 rounded-full text-[10px] font-bold tracking-wider uppercase border ${getStatusBadgeStyles(l.status)}`}>
+                            {l.status}
+                          </span>
+                          <span className="font-mono text-[10px] text-slate-400 dark:text-slate-500">
+                            {l.requestNumber}
+                          </span>
+                        </div>
+
+                        {/* Employee Details */}
+                        <div className="flex items-center gap-3 mb-5">
+                          <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-slate-100 to-slate-200 dark:from-slate-800 dark:to-slate-700 flex items-center justify-center text-sm font-bold text-slate-600 dark:text-slate-300 border border-white/50 dark:border-slate-700 group-hover:scale-105 transition-transform duration-300">
+                            {getInitials({ firstName: l.employeeName })}
+                          </div>
+                          <div>
+                            <h3 className="text-base font-bold text-slate-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+                              {l.employeeName || "Unknown Employee"}
+                            </h3>
+                            <p className="text-[10px] text-slate-500 dark:text-slate-400">
+                              Applied: {l.appliedOnUtc ? l.appliedOnUtc.substring(0, 10) : "N/A"}
+                            </p>
+                          </div>
+                        </div>
+
+                        {/* Leave Info */}
+                        <div className="space-y-3 mb-6 flex-1">
+                          <div className="flex items-center gap-2">
+                            <span className="px-2 py-0.5 rounded text-[10px] font-bold border border-blue-200 dark:border-blue-900/40 bg-blue-50 dark:bg-blue-950/30 text-blue-600 dark:text-blue-400 uppercase">
+                              {l.leaveType}
+                            </span>
+                            <span className="text-xs font-medium text-slate-600 dark:text-slate-300">
+                              {l.totalDays} Days {l.isHalfDay && "(Half Day)"}
+                            </span>
+                          </div>
+                          
+                          <div className="flex items-start gap-2 text-xs text-slate-600 dark:text-slate-400 bg-slate-50 dark:bg-slate-800/30 p-3 rounded-xl border border-slate-100 dark:border-slate-800/60">
+                            <FaCalendarAlt className="text-slate-400 mt-0.5 flex-shrink-0" />
+                            <span>{l.startDate} &nbsp;→&nbsp; {l.endDate}</span>
+                          </div>
+
+                          <div className="text-xs text-slate-600 dark:text-slate-400 line-clamp-2" title={l.reason}>
+                            <span className="font-semibold text-slate-700 dark:text-slate-300">Reason: </span>
+                            {l.reason || <span className="italic text-slate-400 dark:text-slate-500">None provided</span>}
+                          </div>
+                        </div>
+
+                        {/* Actions */}
+                        <div className="flex items-center justify-end gap-2 pt-4 border-t border-slate-100 dark:border-slate-800/80">
+                          {(l.status === "PENDING" || l.statusCode === "PENDING") && (
+                            <>
+                              <button
+                                onClick={() => handleMockStatus(l.id, l.requestNumber, "APPROVED")}
+                                title="Approve"
+                                className="w-8 h-8 flex items-center justify-center rounded-full bg-emerald-50 hover:bg-emerald-500 text-emerald-600 hover:text-white dark:bg-emerald-950/40 dark:hover:bg-emerald-500 dark:text-emerald-400 dark:hover:text-white border border-emerald-200 dark:border-emerald-900/50 hover:border-transparent transition-all"
+                              >
+                                <FaCheck className="text-[10px]" />
+                              </button>
+                              <button
+                                onClick={() => handleMockStatus(l.id, l.requestNumber, "REJECTED")}
+                                title="Reject"
+                                className="w-8 h-8 flex items-center justify-center rounded-full bg-rose-50 hover:bg-rose-500 text-rose-600 hover:text-white dark:bg-rose-950/40 dark:hover:bg-rose-500 dark:text-rose-400 dark:hover:text-white border border-rose-200 dark:border-rose-900/50 hover:border-transparent transition-all"
+                              >
+                                <FaTimes className="text-[10px]" />
+                              </button>
+                            </>
+                          )}
+                          <button
+                            onClick={() => handleDeleteClick(l.id)}
+                            title="Delete"
+                            className="w-8 h-8 flex items-center justify-center rounded-full bg-slate-100 hover:bg-red-500 text-slate-600 hover:text-white dark:bg-slate-800/80 dark:hover:bg-red-500 dark:text-slate-400 dark:hover:text-white border border-slate-300 dark:border-slate-700/60 hover:border-transparent transition-all ml-1"
+                          >
+                            <FaTrash className="text-[10px]" />
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Pagination Controls */}
+                {totalPages > 1 && (
+                  <div className="px-6 py-4 border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 flex items-center justify-between transition-colors">
+                    <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">
+                      Showing <span className="font-bold text-slate-900 dark:text-white">{(currentPage - 1) * itemsPerPage + 1}</span> to <span className="font-bold text-slate-900 dark:text-white">{Math.min(currentPage * itemsPerPage, filteredLeaves.length)}</span> of <span className="font-bold text-slate-900 dark:text-white">{filteredLeaves.length}</span> requests
+                    </p>
+                    
+                    <div className="flex items-center gap-1">
+                      <button
+                        onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                        disabled={currentPage === 1}
+                        className="p-2 rounded-lg border border-slate-200 dark:border-slate-700 text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                      >
+                        <FaAngleLeft />
+                      </button>
+                      
+                      <div className="flex items-center gap-1 px-2">
+                        {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                          <button
+                            key={page}
+                            onClick={() => setCurrentPage(page)}
+                            className={`w-8 h-8 rounded-lg text-xs font-bold transition-colors ${
+                              currentPage === page
+                                ? "bg-blue-600 text-white shadow-md shadow-blue-500/30 border border-blue-600"
+                                : "text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 border border-transparent"
+                            }`}
+                          >
+                            {page}
+                          </button>
+                        ))}
+                      </div>
+
+                      <button
+                        onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                        disabled={currentPage === totalPages}
+                        className="p-2 rounded-lg border border-slate-200 dark:border-slate-700 text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                      >
+                        <FaAngleRight />
+                      </button>
+                    </div>
+                  </div>
                 )}
-              />
+              </>
             )}
           </div>
         </section>

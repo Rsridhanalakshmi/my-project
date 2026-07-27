@@ -23,6 +23,8 @@ function Breadcrumb() {
         return "Leave Management";
       case "new":
         return "Add Employee";
+      case "employee-directory":
+        return "Employee";
       default:
         // If it is a route parameter (ID) following "employee", display it as "Edit Employee"
         if (index > 0 && fullPathnames[index - 1] === "employee") {
